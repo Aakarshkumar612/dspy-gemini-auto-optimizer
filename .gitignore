@@ -1,0 +1,30 @@
+# --- API Keys & Secrets ---
+.env
+
+# --- Python / Environments ---
+venv/
+env/
+.venv/
+bin/
+lib/
+share/
+include/
+*.pyc
+__pycache__/
+.ipynb_checkpoints/
+
+# --- DSPy & Model Cache ---
+.dspy_cache/
+cached_results.json
+
+# --- Conda ---
+.conda/
+
+# --- IDE Specific ---
+.vscode/
+.idea/
+.DS_Store
+
+# --- Data & Results (Optional) ---
+# Uncomment the line below if you want to keep data folder local only
+# data/

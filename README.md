@@ -67,7 +67,7 @@ python evaluate.py
 # Launch the Dashboard
 streamlit run app.py
 👤 Developer
-Aakarsh Kumar AI Engineer | Computer Science
+Aakarsh Kumar | AI Engineer | Computer Science
 
 LinkedIn | GitHub
 

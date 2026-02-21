@@ -13,13 +13,12 @@ st.set_page_config(
 )
 
 # 2. Hybrid API Key Handling
-# Prioritizes local .env for development, but switches to st.secrets for Cloud
 load_dotenv()
 api_key = os.getenv("GEMINI_API_KEY")
 
 if not api_key:
     try:
-        # This is the standard way to retrieve keys in Streamlit Community Cloud
+        # standard way to retrieve keys in Streamlit Community Cloud
         if "GEMINI_API_KEY" in st.secrets:
             api_key = st.secrets["GEMINI_API_KEY"]
     except Exception:
@@ -29,24 +28,24 @@ if not api_key:
     st.error("🔑 **API Key Missing:** Please add `GEMINI_API_KEY` to your Streamlit Secrets (Cloud) or .env file (Local).")
     st.stop()
 
-# 3. Model Initialization
+# 3. Model & LM Initialization
 @st.cache_resource
-def get_model():
+def get_resources():
     try:
-        # Configure Gemini 3 Flash for the UI
+        # Initialize the LM
         lm = dspy.LM('gemini/gemini-3-flash-preview', api_key=api_key)
-        dspy.configure(lm=lm)
         
-        # Load the compiled program state from your local data folder
+        # Initialize and load the Reviewer module
         model = Reviewer()
         model.load("data/optimized_app.json")
-        return model
+        
+        return lm, model
     except Exception as e:
-        st.error(f"⚠️ **Error Loading Model:** {e}")
-        return None
+        st.error(f"⚠️ **Error Loading Resources:** {e}")
+        return None, None
 
-# Load the compiled program once and cache it
-model = get_model()
+# Load resources once and cache them
+lm, model = get_resources()
 
 # 4. User Interface
 st.title("🧠 Gemini 3 Auto-Optimized Tech Reviewer")
@@ -73,21 +72,23 @@ with col1:
         """)
 
 if analyze_btn and concept:
-    if model:
+    if model and lm:
         with st.spinner("Optimizing Reasoning Flow..."):
-            # Execute the compiled DSPy program
-            res = model(concept=concept)
-            
-            with col2:
-                st.subheader(f"Results for: {concept}")
+            try:
+                # Use dspy.context to ensure thread-safety in Streamlit
+                with dspy.context(lm=lm):
+                    res = model(concept=concept)
                 
-                # Display internal Chain-of-Thought reasoning
-                with st.expander("🔍 View Internal Reasoning (CoT)", expanded=True):
-                    st.info(res.reasoning)
-                
-                # Display the structured technical analysis
-                st.success("✅ **Final Technical Summary & Pros/Cons**")
-                st.markdown(res.analysis)
+                with col2:
+                    st.subheader(f"Results for: {concept}")
+                    
+                    with st.expander("🔍 View Internal Reasoning (CoT)", expanded=True):
+                        st.info(res.reasoning)
+                    
+                    st.success("✅ **Final Technical Summary & Pros/Cons**")
+                    st.markdown(res.analysis)
+            except Exception as e:
+                st.error(f"❌ **Execution Error:** {e}")
     else:
         st.error("The model could not be loaded. Please ensure 'data/optimized_app.json' is in your GitHub repo.")
 

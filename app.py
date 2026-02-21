@@ -12,22 +12,21 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# 2. Optimized API Key Handling (Silence the Red Error)
-# Check standard environment first to avoid triggering Streamlit's secrets warning locally
+# 2. Hybrid API Key Handling
+# Prioritizes local .env for development, but switches to st.secrets for Cloud
 load_dotenv()
 api_key = os.getenv("GEMINI_API_KEY")
 
-# Only if not found in .env, attempt to check Streamlit Cloud Secrets
 if not api_key:
     try:
-        # We check if the secrets file exists before accessing st.secrets
+        # This is the standard way to retrieve keys in Streamlit Community Cloud
         if "GEMINI_API_KEY" in st.secrets:
             api_key = st.secrets["GEMINI_API_KEY"]
     except Exception:
         pass
 
 if not api_key:
-    st.error("🔑 **API Key Missing:** Please add `GEMINI_API_KEY` to your .env file (Local) or Streamlit Secrets (Cloud).")
+    st.error("🔑 **API Key Missing:** Please add `GEMINI_API_KEY` to your Streamlit Secrets (Cloud) or .env file (Local).")
     st.stop()
 
 # 3. Model Initialization
@@ -38,7 +37,7 @@ def get_model():
         lm = dspy.LM('gemini/gemini-3-flash-preview', api_key=api_key)
         dspy.configure(lm=lm)
         
-        # Load the optimized program state
+        # Load the compiled program state from your local data folder
         model = Reviewer()
         model.load("data/optimized_app.json")
         return model
@@ -46,7 +45,7 @@ def get_model():
         st.error(f"⚠️ **Error Loading Model:** {e}")
         return None
 
-# Load the compiled program
+# Load the compiled program once and cache it
 model = get_model()
 
 # 4. User Interface
@@ -58,7 +57,6 @@ The result is a production-ready model with verified 100% accuracy on structural
 
 st.divider()
 
-# UI Layout: Sidebar/Input on the left, Results on the right
 col1, col2 = st.columns([1, 2], gap="large")
 
 with col1:
@@ -91,7 +89,7 @@ if analyze_btn and concept:
                 st.success("✅ **Final Technical Summary & Pros/Cons**")
                 st.markdown(res.analysis)
     else:
-        st.error("The model could not be loaded. Please check that 'data/optimized_app.json' exists.")
+        st.error("The model could not be loaded. Please ensure 'data/optimized_app.json' is in your GitHub repo.")
 
 # 5. Footer
 st.divider()
